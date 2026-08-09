@@ -1,0 +1,213 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/* =========================
+   Root Variables
+========================= */
+
+:root {
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --secondary: #f59e0b;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --text-light: #6b7280;
+  --border: #e5e7eb;
+
+  font-family: "Poppins", sans-serif;
+}
+
+/* =========================
+   Global Reset
+========================= */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--background);
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* =========================
+   Root Container
+========================= */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* =========================
+   Typography
+========================= */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 3rem;
+}
+
+h2 {
+  font-size: 2.2rem;
+}
+
+h3 {
+  font-size: 1.6rem;
+}
+
+p {
+  color: var(--text-light);
+  line-height: 1.7;
+}
+
+/* =========================
+   Links
+========================= */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+a:hover {
+  color: var(--primary);
+}
+
+/* =========================
+   Images
+========================= */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* =========================
+   Buttons
+========================= */
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: 0.3s ease;
+}
+
+.btn-primary {
+  padding: 12px 26px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  padding: 12px 26px;
+  border-radius: 10px;
+  background: var(--secondary);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+}
+
+/* =========================
+   Cards
+========================= */
+.card {
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+/* =========================
+   Container
+========================= */
+.container {
+  width: min(1200px, 92%);
+  margin: auto;
+}
+
+/* =========================
+   Utility Classes
+========================= */
+.text-center {
+  text-align: center;
+}
+
+.mt-2 { margin-top: .5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.mt-5 { margin-top: 2rem; }
+
+.mb-2 { margin-bottom: .5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.mb-5 { margin-bottom: 2rem; }
+
+/* =========================
+   Scrollbar
+========================= */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 992px) {
+  h1 {
+    font-size: 2.3rem;
+  }
+
+  h2 {
+    font-size: 1.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+  }
+
+  .container {
+    width: 94%;
+  }
+}
