@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>rr.seafoods</groupId>
-	<artifactId>in</artifactId>
+	<artifactId>rr-seafoods</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name/>
@@ -63,7 +63,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-tomcat</artifactId>
-			<scope>provided</scope>
+			<!-- <scope>provided</scope> -->
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
