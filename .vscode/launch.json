@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-InApplication<in>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "rr.seafoods.in.InApplication",
+            "projectName": "in",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
