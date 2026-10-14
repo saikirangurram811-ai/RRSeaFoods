@@ -1,4 +1,3 @@
-
 package rr.seafoods.in.controller;
 
 import org.springframework.http.HttpStatus;
@@ -10,8 +9,11 @@ import rr.seafoods.in.dto.LoginRequest;
 import rr.seafoods.in.dto.RegisterRequest;
 import rr.seafoods.in.service.AuthService;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     private final AuthService authService;
@@ -20,28 +22,38 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @GetMapping("/status")
+    public ResponseEntity<?> status() {
+        return ResponseEntity.ok(Map.of(
+                "status", "UP",
+                "message", "RR Sea Foods Backend is running successfully"
+        ));
+    }
+
     @PostMapping("/register")
-    public ResponseEntity<?> register(
-            @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
             AuthResponse response = authService.register(request);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(java.util.Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Registration failed: " + e.getMessage()));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             AuthResponse response = authService.login(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(java.util.Map.of("message", e.getMessage()));
+                    .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Login failed: " + e.getMessage()));
         }
     }
 }

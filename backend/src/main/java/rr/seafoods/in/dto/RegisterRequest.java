@@ -1,8 +1,13 @@
 package rr.seafoods.in.dto;
 
 public record RegisterRequest(
-    String name,
+    String username,
+    String firstname,
+    String lastname,
     String email,
-    String password
+    String mobile,
+    String password,
+    String confirmpassword,
+    String name
 ) {
 }

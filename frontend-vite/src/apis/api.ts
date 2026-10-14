@@ -177,20 +177,16 @@ export interface ChangePasswordRequest {
 
 
 export async function registerUser(data: RegisterRequest): Promise<MessageResponse> {
-    const encrypted = await e(JSON.stringify(data));
-    return request<MessageResponse>("/auth/registers", {
+    return request<MessageResponse>("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: encrypted,
+        body: JSON.stringify(data),
     });
 }
 
 export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
-    const encrypted = await e(JSON.stringify(data));
     return request<LoginResponse>("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: encrypted,
+        body: JSON.stringify(data),
     });
 }
 
