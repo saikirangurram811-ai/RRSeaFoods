@@ -1,13 +1,11 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "./Sidebar.css";
 
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
 }
-
-
 
 const NAV = [
   {
@@ -28,7 +26,6 @@ const NAV = [
     label: "Master",
     allowedRoles: ["ROLE_ADMIN", "ROLE_SUPER_ADMIN"],
     children: [
-
       {
         to: "/dashboard/master/state",
         label: "State Master",
@@ -57,17 +54,27 @@ const NAV = [
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  const user = JSON.parse(localStorage.getItem("user") ?? "{}");
-  
-  const role = user.role ?? user.roles?.[0] ?? "USER";
+  // Auto-expand menu if current route is a child
+  useEffect(() => {
+    if (location.pathname.startsWith("/dashboard/master")) {
+      setOpenMenu("Master");
+    }
+  }, [location.pathname]);
 
-  const filteredNAV = NAV.filter(item => item.allowedRoles.includes(role));
+  const user = JSON.parse(localStorage.getItem("user") ?? "{}");
+  const role = user.role ?? user.roles?.[0] ?? "ROLE_USER";
+
+  const filteredNAV = NAV.filter((item) =>
+    item.allowedRoles.some((r) => r === role || role.includes(r))
+  );
 
   function logout() {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     localStorage.removeItem("isLoggedIn");
     localStorage.clear();
     navigate("/login");
@@ -79,18 +86,22 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
 
   return (
     <aside className={`sidebar ${collapsed ? "sidebar--col" : ""}`}>
-
       {/* Logo */}
       <div className="sidebar-top">
-        <div className="sidebar-logo">
-          <span className="logo-mark">N</span>
-          {!collapsed && <span className="logo-text">Practice-Pr</span>}
+        <div className="sidebar-logo" onClick={() => navigate("/dashboard")} style={{ cursor: "pointer" }}>
+          <img
+            src="/rrseafoodslogo.png"
+            alt="RR Sea Foods Logo"
+            className="sidebar-logo-img"
+          />
+          {!collapsed && <span className="logo-text">RR Sea Foods</span>}
         </div>
 
         <button
           className="toggle-btn"
           onClick={onToggle}
-          title="Toggle sidebar"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          type="button"
         >
           {collapsed ? "→" : "←"}
         </button>
@@ -98,55 +109,49 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {filteredNAV.map((item) => (
-          <div key={item.to}>
+        {filteredNAV.map((item) => {
+          const isItemActive =
+            item.to === "/dashboard"
+              ? location.pathname === "/dashboard"
+              : location.pathname.startsWith(item.to);
 
-            {/* Main Menu */}
-            <div
-              className="nav-link"
-              // onClick={() =>
-              //   item.children
-              //     ? toggleSubmenu(item.label)
-              //     : navigate(item.to)
-              // }
+          return (
+            <div key={item.to}>
+              {/* Main Menu */}
+              <div
+                className={`nav-link ${isItemActive ? "nav-link--active" : ""}`}
+                onClick={() => {
+                  if (item.children) {
+                    toggleSubmenu(item.label);
+                  } else {
+                    navigate(item.to);
+                  }
+                }}
+              >
+                <span className="nav-icon">{item.icon}</span>
 
-              onClick={() => {
-                if (item.children) {
-                  toggleSubmenu(item.label);
-                } else {
-                  navigate(item.to);
-                  window.location.reload();
-                }
-              }}
-            >
-            
-              <span className="nav-icon">{item.icon}</span>
+                {!collapsed && (
+                  <>
+                    <span className="nav-label">{item.label}</span>
 
-              {!collapsed && (
-                <>
-                  <span className="nav-label">{item.label}</span>
+                    {item.children && (
+                      <span className="nav-arrow">
+                        {openMenu === item.label ? "⌄" : "›"}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
 
-                  {item.children && (
-                    <span className="nav-arrow">
-                      {openMenu === item.label ? "⌄" : "›"}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Submenu */}
-            {!collapsed &&
-              item.children &&
-              openMenu === item.label && (
+              {/* Submenu */}
+              {!collapsed && item.children && openMenu === item.label && (
                 <div className="submenu">
                   {item.children.map((sub) => (
                     <NavLink
                       key={sub.to}
                       to={sub.to}
                       className={({ isActive }) =>
-                        `submenu-link ${isActive ? "submenu-link--active" : ""
-                        }`
+                        `submenu-link ${isActive ? "submenu-link--active" : ""}`
                       }
                     >
                       {sub.label}
@@ -154,32 +159,34 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                   ))}
                 </div>
               )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </nav>
-
 
       {/* Bottom */}
       <div className="sidebar-bottom">
-        <div className="sidebar-user">
+        <div
+          className="sidebar-user"
+          onClick={() => navigate("/dashboard/profile")}
+          style={{ cursor: "pointer" }}
+          title="View profile"
+        >
           <div className="user-avatar">
-            {(user.username ?? "U")
-              .charAt(0)
-              .toUpperCase()}
+            {(user.username ?? user.name ?? "U").charAt(0).toUpperCase()}
           </div>
 
           {!collapsed && (
             <div className="user-info">
-              {/* <span className="user-name">
-                {localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).email : "User"}
-              </span>
-
-              <span className="user-role">Member</span> */}
               <span className="user-name">
-                {user.username ?? "User"}  
+                {user.username ?? user.name ?? "User"}
               </span>
               <span className="user-role">
-                {role === "ROLE_SUPER_ADMIN" ? "Super Admin" : role === "ROLE_ADMIN" ? "Admin" : "User"}  
+                {role === "ROLE_SUPER_ADMIN"
+                  ? "Super Admin"
+                  : role === "ROLE_ADMIN"
+                    ? "Admin"
+                    : "User"}
               </span>
             </div>
           )}
@@ -189,6 +196,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
           className="logout-btn"
           onClick={logout}
           title="Sign out"
+          type="button"
         >
           {collapsed ? "⇤" : "Sign out"}
         </button>

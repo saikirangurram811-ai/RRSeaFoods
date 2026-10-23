@@ -421,3 +421,28 @@
     font-size: 10px;
   }
 }
+
+/* Dashboard content */
+
+.dashboard-layout {
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
+}
+
+/* When sidebar is collapsed */
+
+.dashboard-layout.sidebar-collapsed {
+  margin-left: 76px;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    margin-left: 240px;
+  }
+
+  .dashboard-layout.sidebar-collapsed {
+    margin-left: 70px;
+  }
+}
