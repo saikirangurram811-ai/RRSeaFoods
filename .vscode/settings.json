@@ -1,0 +1,10 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.errors.incompleteClasspath.severity": "warning",
+  "errorLens.enabled": true,
+  "errorLens.followCursor": "allLines",
+  "problems.showCurrentInStatus": true,
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.autobuild.enabled": true
+}
+

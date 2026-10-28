@@ -1,8 +1,15 @@
 package rr.seafoods.in.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Data;
 
 @Entity
+@Data 
 @Table(name = "app_users")
 public class User {
 
@@ -29,9 +36,6 @@ public class User {
 
     @Column(nullable = false)
     private String role = "ROLE_USER";
-
-    public User() {
-    }
 
     public Long getId() {
         return id;
@@ -104,4 +108,6 @@ public class User {
     public void setRole(String role) {
         this.role = role;
     }
+
+   
 }

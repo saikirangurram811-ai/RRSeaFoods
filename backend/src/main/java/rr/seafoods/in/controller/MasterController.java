@@ -1,171 +1,92 @@
 package rr.seafoods.in.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import rr.seafoods.in.entity.Product;
+import rr.seafoods.in.repository.ProductRepo;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/master")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = "http://localhost:3001", allowCredentials = "true")
 public class MasterController {
 
-    private final Map<Long, Map<String, Object>> states = new ConcurrentHashMap<>();
-    private final Map<Long, Map<String, Object>> districts = new ConcurrentHashMap<>();
-    private final Map<Long, Map<String, Object>> departments = new ConcurrentHashMap<>();
-    private final Map<Long, Map<String, Object>> orgs = new ConcurrentHashMap<>();
+    private final ProductRepo productRepo;
 
-    private final AtomicLong stateIdSeq = new AtomicLong(1);
-    private final AtomicLong districtIdSeq = new AtomicLong(1);
-    private final AtomicLong deptIdSeq = new AtomicLong(1);
-    private final AtomicLong orgIdSeq = new AtomicLong(1);
-
-    public MasterController() {
-        // Seed default initial master data
-        seedState("Andhra Pradesh");
-        seedState("Tamil Nadu");
-        seedState("Kerala");
-        seedState("Karnataka");
-
-        seedDistrict("Visakhapatnam", 1L);
-        seedDistrict("Kakinada", 1L);
-        seedDistrict("Chennai", 2L);
-        seedDistrict("Kochi", 3L);
-
-        seedDept("Procurement & Coastal Sourcing");
-        seedDept("Cold Chain & Quality Inspection");
-        seedDept("Logistics & Express Delivery");
-        seedDept("B2B Wholesale Operations");
-
-        seedOrg("RR Sea Foods Coastal Harbor Unit");
-        seedOrg("RR Sea Foods Central Cold Storage");
-        seedOrg("RR Sea Foods Express Fleet");
+    @Autowired
+    public MasterController(ProductRepo productRepo) {
+        this.productRepo = productRepo;
     }
 
-    private void seedState(String name) {
-        long id = stateIdSeq.getAndIncrement();
-        states.put(id, new HashMap<>(Map.of("id", id, "statename", name, "status", 1)));
+     @GetMapping("/products")
+    public List<Product> getProducts() {
+        return productRepo.findAll();
     }
 
-    private void seedDistrict(String name, Long stateId) {
-        long id = districtIdSeq.getAndIncrement();
-        districts.put(id, new HashMap<>(Map.of("id", id, "districtname", name, "stateid", stateId, "status", 1)));
+    // Add product
+    @PostMapping("/addProduct")
+    public ResponseEntity<?> addProduct(@RequestBody Product product) {
+
+        if (product.getProductName() == null ||
+                product.getProductName().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Product name is required"));
+        }
+
+        product.setProductId(null);
+
+        product.setProductQuantity("1");
+
+        Product savedProduct = productRepo.save(product);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
     }
 
-    private void seedDept(String name) {
-        long id = deptIdSeq.getAndIncrement();
-        departments.put(id, new HashMap<>(Map.of("id", id, "departmentname", name, "status", 1)));
+    // Update product
+    @PutMapping("/updateProduct/{id}")
+    public ResponseEntity<?> updateProduct(
+            @PathVariable Long id,
+            @RequestBody Product product) {
+
+        Product existingProduct = productRepo.findById(id).orElse(null);
+
+        if (existingProduct == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Product not found"));
+        }
+
+        if (product.getProductName() == null ||
+                product.getProductName().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Product name is required"));
+        }
+
+        existingProduct.setProductName(product.getProductName().trim());
+        existingProduct.setProductPrice(product.getProductPrice());
+        existingProduct.setProductQuantity(product.getProductQuantity());
+
+        Product updatedProduct = productRepo.save(existingProduct);
+
+        return ResponseEntity.ok(updatedProduct);
     }
 
-    private void seedOrg(String name) {
-        long id = orgIdSeq.getAndIncrement();
-        orgs.put(id, new HashMap<>(Map.of("id", id, "orgname", name, "status", 1)));
-    }
+    // Delete product
+    @DeleteMapping("/deleteProduct/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
 
-    // --- State Master ---
-    @GetMapping("/stateMaster")
-    public ResponseEntity<List<Map<String, Object>>> getStateMaster() {
-        return ResponseEntity.ok(new ArrayList<>(states.values()));
-    }
+        if (!productRepo.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Product not found"));
+        }
 
-    @PostMapping("/saveState")
-    public ResponseEntity<?> saveState(@RequestBody Map<String, Object> data) {
-        long id = data.containsKey("id") && data.get("id") != null
-                ? Long.parseLong(data.get("id").toString())
-                : stateIdSeq.getAndIncrement();
-        states.put(id, new HashMap<>(Map.of(
-                "id", id,
-                "statename", data.getOrDefault("statename", "New State"),
-                "status", data.getOrDefault("status", 1)
-        )));
-        return ResponseEntity.ok(Map.of("message", "State saved successfully"));
-    }
+        productRepo.deleteById(id);
 
-    @DeleteMapping("/deleteState/{id}")
-    public ResponseEntity<?> deleteState(@PathVariable Long id) {
-        states.remove(id);
-        return ResponseEntity.ok(Map.of("message", "State deleted successfully"));
-    }
-
-    // --- District Master ---
-    @GetMapping("/districtMaster")
-    public ResponseEntity<List<Map<String, Object>>> getDistrictMaster() {
-        return ResponseEntity.ok(new ArrayList<>(districts.values()));
-    }
-
-    @PostMapping("/saveDistrict")
-    public ResponseEntity<?> saveDistrict(@RequestBody Map<String, Object> data) {
-        long id = data.containsKey("id") && data.get("id") != null
-                ? Long.parseLong(data.get("id").toString())
-                : districtIdSeq.getAndIncrement();
-        districts.put(id, new HashMap<>(Map.of(
-                "id", id,
-                "districtname", data.getOrDefault("districtname", "New District"),
-                "stateid", data.getOrDefault("stateid", 1),
-                "status", data.getOrDefault("status", 1)
-        )));
-        return ResponseEntity.ok(Map.of("message", "District saved successfully"));
-    }
-
-    // --- Department Master ---
-    @GetMapping("/departmentMaster")
-    public ResponseEntity<List<Map<String, Object>>> getDepartmentMaster() {
-        return ResponseEntity.ok(new ArrayList<>(departments.values()));
-    }
-
-    @PostMapping("/saveDepartment")
-    public ResponseEntity<?> saveDepartment(@RequestBody Map<String, Object> data) {
-        long id = data.containsKey("id") && data.get("id") != null
-                ? Long.parseLong(data.get("id").toString())
-                : deptIdSeq.getAndIncrement();
-        departments.put(id, new HashMap<>(Map.of(
-                "id", id,
-                "departmentname", data.getOrDefault("departmentname", "New Department"),
-                "status", data.getOrDefault("status", 1)
-        )));
-        return ResponseEntity.ok(Map.of("message", "Department saved successfully"));
-    }
-
-    @DeleteMapping("/deleteDepartment/{id}")
-    public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
-        departments.remove(id);
-        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
-    }
-
-    // --- Organisation Master ---
-    @GetMapping("/orgMaster")
-    public ResponseEntity<List<Map<String, Object>>> getOrgMaster() {
-        return ResponseEntity.ok(new ArrayList<>(orgs.values()));
-    }
-
-    @PostMapping("/saveOrg")
-    public ResponseEntity<?> saveOrg(@RequestBody Map<String, Object> data) {
-        long id = data.containsKey("id") && data.get("id") != null
-                ? Long.parseLong(data.get("id").toString())
-                : orgIdSeq.getAndIncrement();
-        orgs.put(id, new HashMap<>(Map.of(
-                "id", id,
-                "orgname", data.getOrDefault("orgname", "New Organisation"),
-                "status", data.getOrDefault("status", 1)
-        )));
-        return ResponseEntity.ok(Map.of("message", "Organisation saved successfully"));
-    }
-
-    @DeleteMapping("/deleteOrg/{id}")
-    public ResponseEntity<?> deleteOrg(@PathVariable Long id) {
-        orgs.remove(id);
-        return ResponseEntity.ok(Map.of("message", "Organisation deleted successfully"));
-    }
-
-    // --- Update Status ---
-    @PostMapping("/updatestatus")
-    public ResponseEntity<?> updateStatus(
-            @RequestParam String tablename,
-            @RequestParam Long id,
-            @RequestParam Integer status) {
-        return ResponseEntity.ok(Map.of("message", "Status updated successfully"));
+        return ResponseEntity.ok(
+                Map.of("message", "Product deleted successfully"));
     }
 }
-

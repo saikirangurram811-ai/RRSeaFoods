@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUserList, type User } from "../../apis/api";
+import { getProductList, type Product } from "../../apis/api";
 import "./Dashboard.css";
 
 interface StatCard {
@@ -16,7 +16,7 @@ export default function DashboardHome() {
   const navigate = useNavigate();
 
   const [userCount, setUserCount] = useState<number>(0);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUsersTable, setShowUsersTable] = useState(false);
 
@@ -29,7 +29,7 @@ export default function DashboardHome() {
       return;
     }
 
-    getUserList()
+    getProductList()
       .then((data) => {
         if (Array.isArray(data)) {
           setUserCount(data.length);
@@ -153,14 +153,14 @@ export default function DashboardHome() {
               </tr>
             </thead>
             <tbody>
-              {users.slice(0, 5).map((u) => (
+              {/* {users.slice(0, 5).map((u) => (
                 <tr key={u.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                   <td style={{ padding: "8px 12px" }}>{u.id}</td>
                   <td style={{ padding: "8px 12px", fontWeight: 600 }}>{u.username}</td>
                   <td style={{ padding: "8px 12px" }}>{u.firstname ? `${u.firstname} ${u.lastname ?? ""}` : (u.username ?? "User")}</td>
                   <td style={{ padding: "8px 12px", color: "#64748b" }}>{u.email}</td>
                 </tr>
-              ))}
+              ))} */}
             </tbody>
           </table>
         </div>
