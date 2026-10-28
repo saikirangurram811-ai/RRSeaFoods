@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Children, useEffect, useState } from "react";
 import "./Sidebar.css";
 
 interface Props {
@@ -15,10 +15,10 @@ const NAV = [
     allowedRoles: ["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"],
   },
   {
-    to: "/dashboard/users",
+    to: "/dashboard/product",
     icon: "👥",
-    label: "Users",
-    allowedRoles: ["ROLE_SUPER_ADMIN"],
+    label: "Product",
+    allowedRoles: ["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"],
   },
   {
     to: "/dashboard/master",
@@ -64,6 +64,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
       setOpenMenu("Master");
     }
   }, [location.pathname]);
+
 
   const user = JSON.parse(localStorage.getItem("user") ?? "{}");
   const role = user.role ?? user.roles?.[0] ?? "ROLE_USER";

@@ -13,7 +13,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     private final AuthService authService;
@@ -30,7 +29,7 @@ public class AuthController {
         ));
     }
 
-    @PostMapping("/register")
+    @PostMapping({"/register", "/registers"})
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
             AuthResponse response = authService.register(request);

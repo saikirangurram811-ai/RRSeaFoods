@@ -4,7 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Layout from "./components/Layout/Layout";
 import DashboardHome from "./pages/Dashboard/DashboardHome";
-import Userlist from "./pages/Dashboard/Userlist";
+import Product from "./pages/Dashboard/Product";
 import MasterPage from "./pages/Dashboard/MasterPage";
 import Settings from "./pages/Dashboard/Settings";
 import Profile from "./components/Header/Profile";
@@ -29,10 +29,10 @@ function App() {
         />
 
         <Route
-          path="/dashboard/users"
+          path="/dashboard/product"
           element={
-            <ProtectedRoute allowedRoles={["ROLE_ADMIN", "ROLE_SUPER_ADMIN"]}>
-              <Userlist />
+            <ProtectedRoute allowedRoles={["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"]}>
+              <Product />
             </ProtectedRoute>
           }
         />
