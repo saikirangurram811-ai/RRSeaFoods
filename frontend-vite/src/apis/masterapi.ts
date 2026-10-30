@@ -1,3 +1,4 @@
+import { api } from "../../src/config/services/axios";
 
 export interface Product {
   productId: number;
@@ -21,23 +22,12 @@ export const getProducts = async (): Promise<Product[]> => {
 
 
 // Add a product
-export const addProduct = async (
+export async function addProduct(
   product: Omit<Product, "productId">
-): Promise<Product> => {
-  const response = await fetch(`${API_URL}/addProduct`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(product),
-  });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
-};
+): Promise<Product> {
+  const res = await api.post<Product>("/master/addProduct", product);
+  return res.data;
+}
 
 // Update a product
 export const updateProduct = async (

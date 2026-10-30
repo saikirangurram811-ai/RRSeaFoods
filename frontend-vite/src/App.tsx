@@ -9,6 +9,7 @@ import MasterPage from "./pages/Dashboard/MasterPage";
 import Settings from "./pages/Dashboard/Settings";
 import Profile from "./components/Header/Profile";
 import ProtectedRoute from "./components/ProtectedRoutes/ProtectedRoutes";
+import Stock from "./pages/Dashboard/Stock";
 
 function App() {
   return (
@@ -33,6 +34,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"]}>
               <Product />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/stock"
+          element={
+            <ProtectedRoute allowedRoles={["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"]}>
+              <Stock />
             </ProtectedRoute>
           }
         />

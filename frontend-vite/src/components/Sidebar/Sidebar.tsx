@@ -21,6 +21,12 @@ const NAV = [
     allowedRoles: ["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"],
   },
   {
+    to: "/dashboard/stock",
+    icon: "📊",
+    label: "Stock",
+    allowedRoles: ["ROLE_USER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN"],
+  },
+  {
     to: "/dashboard/master",
     icon: "📊",
     label: "Master",

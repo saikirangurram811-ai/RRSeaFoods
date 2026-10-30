@@ -1,5 +1,9 @@
-
 package rr.seafoods.in.entity;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,6 +27,14 @@ public class Product {
     private String productPrice;
 
     private String productQuantity;
+
+    @CreationTimestamp
+    @Column(name = "created_on", updatable = false)
+    private LocalDateTime createdOn;
+
+    @UpdateTimestamp
+    @Column(name = "updated_on")
+    private LocalDateTime updatedOn;
 
     public String getProductName() {
         return productName;
@@ -54,5 +66,22 @@ public class Product {
 
     public void setProductId(Long productId) {
         this.productId = productId;
+    }
+
+   
+    public LocalDateTime getCreatedOn() {
+        return createdOn;
+    }
+
+    public void setCreatedOn(LocalDateTime createdOn) {
+        this.createdOn = createdOn;
+    }
+
+    public LocalDateTime getUpdatedOn() {
+        return updatedOn;
+    }
+
+    public void setUpdatedOn(LocalDateTime updatedOn) {
+        this.updatedOn = updatedOn;
     }
 }
