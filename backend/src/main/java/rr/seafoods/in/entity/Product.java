@@ -2,6 +2,8 @@ package rr.seafoods.in.entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import javax.swing.plaf.TreeUI;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -35,6 +37,9 @@ public class Product {
     @UpdateTimestamp
     @Column(name = "updated_on")
     private LocalDateTime updatedOn;
+
+    @Column(name = "status")
+    private String status = "A";   
 
     public String getProductName() {
         return productName;
@@ -83,5 +88,13 @@ public class Product {
 
     public void setUpdatedOn(LocalDateTime updatedOn) {
         this.updatedOn = updatedOn;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

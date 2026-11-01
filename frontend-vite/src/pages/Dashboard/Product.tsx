@@ -7,6 +7,7 @@ import {
   type Product,
 } from "../../apis/masterapi";
 
+import toast from "react-hot-toast";
 import "../../components/DynamicTableForm/DynamicCSS/DynamicTable.css";
 import "./Dashboard.css";
 
@@ -34,11 +35,11 @@ export default function Products() {
       const data = await getProducts();
       setProducts(data);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load products"
-      );
+      const message =
+        err instanceof Error ? err.message : "Unable to load products";
+
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -66,22 +67,48 @@ export default function Products() {
     setShowDialog(true);
   };
 
-  // Save product using API
+  // Close dialog
+  const closeDialog = () => {
+    if (saving) return;
+    setShowDialog(false);
+    setError("");
+  };
+
+  // Save or update product
   const saveProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
+    // Validate product name
     if (!productName.trim()) {
       setError("Please enter product name");
       return;
     }
 
+    // Validate price
+    const priceNumber = Number(price);
     if (
       price.trim() === "" ||
-      !Number.isFinite(Number(price)) ||
-      Number(price) <= 0
+      !Number.isFinite(priceNumber) ||
+      priceNumber <= 0
     ) {
       setError("Please enter a valid price");
+      return;
+    }
+
+    // Duplicate product name validation
+    const enteredName = productName.trim().toLowerCase();
+
+    const exists = products.some((item) => {
+      const existingName = (item.productName || "").trim().toLowerCase();
+      const isSameProduct =
+        editingId !== null && Number(item.productId) === Number(editingId);
+
+      return existingName === enteredName && !isSameProduct;
+    });
+
+    if (exists) {
+      toast.error("Product name already exists!");
       return;
     }
 
@@ -95,9 +122,15 @@ export default function Products() {
 
     try {
       if (editingId !== null) {
-        await updateProduct(editingId, productData);
+        const updatedProduct = await updateProduct(editingId, productData);
+        setProducts((prev) =>
+          prev.map((p) => (p.productId === editingId ? updatedProduct : p))
+        );
+        toast.success("Product updated successfully!");
       } else {
-        await addProduct(productData);
+        const newProduct = await addProduct(productData);
+        setProducts((prev) => [...prev, newProduct]);
+        toast.success("Product added successfully!");
       }
 
       setShowDialog(false);
@@ -105,21 +138,18 @@ export default function Products() {
       setProductName("");
       setPrice("");
       setError("");
-
-      // Refresh list with database data
-      await loadProducts();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to save product"
-      );
+    } catch (err: any) {
+      console.error("Save product error:", err);
+      const message =
+        err.response?.data?.message || err.message || "Unable to save product";
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
-  // Delete product using API
+  // Delete product
   const handleDeleteProduct = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this product?")) {
       return;
@@ -130,13 +160,19 @@ export default function Products() {
 
     try {
       await deleteProductApi(id);
-      await loadProducts();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to delete product"
+
+      // Remove deleted product from current list
+      setProducts((prevProducts) =>
+        prevProducts.filter((product) => product.productId !== id)
       );
+
+      toast.success("Product deleted successfully!");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to delete product";
+
+      setError(message);
+      toast.error(message);
     } finally {
       setDeletingId(null);
     }
@@ -144,29 +180,21 @@ export default function Products() {
 
   // Search products
   const filteredProducts = products.filter((product) =>
-    (product.productName ?? "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    (product.productName ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="dash-home product-page">
-
       {/* Page Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Products</h1>
-
           <p className="page-sub">
             Manage your seafood products and price per KG
           </p>
         </div>
 
-        <button
-          className="btn-primary"
-          type="button"
-          onClick={openAddDialog}
-        >
+        <button className="btn-primary" type="button" onClick={openAddDialog}>
           + Add Product
         </button>
       </div>
@@ -175,10 +203,7 @@ export default function Products() {
       {error && !showDialog && (
         <div className="product-form-error">
           {error}
-          <button
-            type="button"
-            onClick={() => void loadProducts()}
-          >
+          <button type="button" onClick={() => void loadProducts()}>
             Retry
           </button>
         </div>
@@ -186,7 +211,6 @@ export default function Products() {
 
       {/* Product List */}
       <div className="dt-root">
-
         <div className="dt-toolbar">
           <input
             className="dt-search"
@@ -205,7 +229,6 @@ export default function Products() {
 
         <div className="dt-wrap">
           <table className="dt-table">
-
             <thead>
               <tr>
                 <th>ID</th>
@@ -229,34 +252,23 @@ export default function Products() {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((product) => (
+                filteredProducts.map((product, index) => (
                   <tr key={product.productId}>
+                    {/* Serial number instead of database ID */}
+                    <td>{index + 1}</td>
 
-                    <td>{product.productId}</td>
-
-                    <td
-                      style={{
-                        fontWeight: 600,
-                        color: "#0f172a",
-                      }}
-                    >
+                    <td style={{ fontWeight: 600, color: "#0f172a" }}>
                       {product.productName}
                     </td>
 
                     <td>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: "#2563eb",
-                        }}
-                      >
+                      <span style={{ fontWeight: 600, color: "#2563eb" }}>
                         ₹{Number(product.productPrice || 0).toFixed(2)}
                       </span>
                     </td>
 
                     <td>
                       <div className="product-actions">
-
                         <button
                           type="button"
                           className="product-edit-btn"
@@ -277,42 +289,29 @@ export default function Products() {
                             ? "Deleting..."
                             : "Delete"}
                         </button>
-
                       </div>
                     </td>
-
                   </tr>
                 ))
               )}
             </tbody>
-
           </table>
         </div>
       </div>
 
       {/* Add / Update Product Dialog */}
       {showDialog && (
-        <div
-          className="product-modal-overlay"
-          onClick={() => {
-            if (!saving) setShowDialog(false);
-          }}
-        >
+        <div className="product-modal-overlay" onClick={closeDialog}>
           <div
             className="product-modal"
             onClick={(e) => e.stopPropagation()}
           >
-
             {/* Dialog Header */}
             <div className="product-modal-header">
-
               <div>
                 <h2>
-                  {editingId !== null
-                    ? "Update Product"
-                    : "Add Product"}
+                  {editingId !== null ? "Update Product" : "Add Product"}
                 </h2>
-
                 <p>Enter product details below</p>
               </div>
 
@@ -320,20 +319,16 @@ export default function Products() {
                 type="button"
                 className="product-modal-close"
                 disabled={saving}
-                onClick={() => setShowDialog(false)}
+                onClick={closeDialog}
               >
                 ×
               </button>
-
             </div>
 
-            {/* Dialog Form */}
-            <form onSubmit={saveProduct}>
-
+            {/* Dialog Form (noValidate lets our own validation run) */}
+            <form onSubmit={saveProduct} noValidate>
               <div className="product-modal-body">
-
                 <div className="product-form-group">
-
                   <label>
                     Product Name <span>*</span>
                   </label>
@@ -344,19 +339,15 @@ export default function Products() {
                     value={productName}
                     onChange={(e) => setProductName(e.target.value)}
                     autoFocus
-                    required
                   />
-
                 </div>
 
                 <div className="product-form-group">
-
                   <label>
                     Price per KG <span>*</span>
                   </label>
 
                   <div className="product-price-input">
-
                     <span>₹</span>
 
                     <input
@@ -366,33 +357,22 @@ export default function Products() {
                       step="0.01"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
-                      required
                     />
 
-                    <span className="product-price-unit">
-                      / KG
-                    </span>
-
+                    <span className="product-price-unit">/ KG</span>
                   </div>
-
                 </div>
 
-                {error && (
-                  <div className="product-form-error">
-                    {error}
-                  </div>
-                )}
-
+                {error && <div className="product-form-error">{error}</div>}
               </div>
 
               {/* Dialog Footer */}
               <div className="product-modal-footer">
-
                 <button
                   type="button"
                   className="product-cancel-btn"
                   disabled={saving}
-                  onClick={() => setShowDialog(false)}
+                  onClick={closeDialog}
                 >
                   Cancel
                 </button>
@@ -408,15 +388,11 @@ export default function Products() {
                       ? "Update Product"
                       : "Save Product"}
                 </button>
-
               </div>
-
             </form>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

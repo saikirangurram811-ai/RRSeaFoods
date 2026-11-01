@@ -10,6 +10,7 @@ import rr.seafoods.in.repository.ProductRepo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/master")
@@ -23,23 +24,30 @@ public class MasterController {
         this.productRepo = productRepo;
     }
 
-     @GetMapping("/products")
+    @GetMapping("/products")
     public List<Product> getProducts() {
-        return productRepo.findAll();
+        return productRepo.findByStatus("A");
     }
 
     // Add product
     @PostMapping("/addProduct")
     public ResponseEntity<?> addProduct(@RequestBody Product product) {
 
-        if (product.getProductName() == null ||
-                product.getProductName().trim().isEmpty()) {
+        if (product.getProductName() == null
+                || product.getProductName().trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Product name is required"));
         }
 
-        product.setProductId(null);
+        String productName = product.getProductName().trim();
 
+        boolean exists = productRepo.existsByProductNameIgnoreCaseAndStatus(productName, "A");
+
+        if (exists){
+            return ResponseEntity.badRequest().body(Map.of("message", "Product already exists"));
+        }
+        product.setProductId(null);
+        product.setProductName(productName);
         product.setProductQuantity("1");
 
         Product savedProduct = productRepo.save(product);
@@ -60,8 +68,8 @@ public class MasterController {
                     .body(Map.of("message", "Product not found"));
         }
 
-        if (product.getProductName() == null ||
-                product.getProductName().trim().isEmpty()) {
+        if (product.getProductName() == null
+                || product.getProductName().trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Product name is required"));
         }
@@ -79,12 +87,22 @@ public class MasterController {
     @DeleteMapping("/deleteProduct/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
 
-        if (!productRepo.existsById(id)) {
+        Optional<Product> optionalProduct = productRepo.findById(id);
+
+        if (optionalProduct.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Product not found"));
         }
 
-        productRepo.deleteById(id);
+        Product product = optionalProduct.get();
+
+        if ("D".equals(product.getStatus())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Product already deleted"));
+        }
+
+        product.setStatus("D");
+        productRepo.save(product);
 
         return ResponseEntity.ok(
                 Map.of("message", "Product deleted successfully"));

@@ -1,4 +1,5 @@
 import { api } from "../../src/config/services/axios";
+import Products from "../pages/Dashboard/Product";
 
 export interface Product {
   productId: number;
@@ -11,14 +12,10 @@ const API_URL = "http://localhost:8989/master";
 
 // Get all products
 export const getProducts = async (): Promise<Product[]> => {
-  const response = await fetch(`${API_URL}/products`);
+   const res = await api.get<Product[]>("/master/products");
+  return res.data;
+}
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch products");
-  }
-
-  return response.json();
-};
 
 
 // Add a product
@@ -30,35 +27,26 @@ export async function addProduct(
 }
 
 // Update a product
-export const updateProduct = async (
+
+export async function updateProduct(
   id: number,
   product: Omit<Product, "productId">
-): Promise<Product> => {
-  const response = await fetch(`${API_URL}/updateProduct/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(product),
-  });
+): Promise<Product> {
+  const res = await api.put<Product>(`/master/updateProduct/${id}`, product);
+  return res.data;
+}
 
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
-};
 
 // Delete a product
-export const deleteProduct = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/deleteProduct/${id}`, {
-    method: "DELETE",
-  });
 
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-};
+export async function deleteProduct(
+  id: number,
+  // product: Omit<Product, "productId">
+): Promise<Product> {
+  const res = await api.delete<Product>(`/master/deleteProduct/${id}`);
+  return res.data;
+}
+
 
 // Read an error message from the backend
 const getErrorMessage = async (response: Response): Promise<string> => {

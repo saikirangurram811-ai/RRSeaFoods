@@ -428,6 +428,14 @@ const Stock: React.FC = () => {
                     {activeTab !== "remaining" && (
                       <td>
                         <div className="action-btns">
+
+                          <button
+                          type="button"
+                          className="product-edit-btn"
+                          // onClick={() => openEditDialog(product)}
+                        >
+                          Edit
+                        </button>
                           <button
                             className="act-btn delete"
                             onClick={() => handleDelete(item.id)}
