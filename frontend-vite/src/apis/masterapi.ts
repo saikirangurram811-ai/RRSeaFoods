@@ -6,6 +6,7 @@ export interface Product {
   productName: string;
   productPrice: string;
   productQuantity: string;
+
 }
 
 const API_URL = "http://localhost:8989/master";
@@ -56,4 +57,38 @@ const getErrorMessage = async (response: Response): Promise<string> => {
   } catch {
     return "Request failed. Please try again.";
   }
+};
+
+export type StockMovement = "IN" | "OUT" 
+
+export interface StockPayload {
+  productId: number;
+  quantity: number;
+  productName: string;
+  stockType?: StockMovement;
+  stockDate: string; 
+}
+
+export interface StockResponse {
+  stocktId: number;
+  productId: number;
+  productName: string;
+  quantity: string;
+  stockType: StockMovement;
+  stockDate: string;
+}
+
+export const addStockIn = async (
+    stock: StockPayload
+): Promise<StockResponse> => {
+    const res = await api.post<StockResponse>("/master/addStockIn", {
+        ...stock,
+        stockType: "IN"
+    });
+    return res.data;
+};
+
+export const getStockIn = async (): Promise<StockResponse[]> => {
+    const res = await api.get<StockResponse[]>("/master/stockIn");
+    return res.data;
 };

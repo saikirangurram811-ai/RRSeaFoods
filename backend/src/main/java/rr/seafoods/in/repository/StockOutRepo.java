@@ -3,8 +3,9 @@ package rr.seafoods.in.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import rr.seafoods.in.entity.Stock;
+import rr.seafoods.in.entity.StockOut;
+
 @Repository 
-public interface StockRepo extends JpaRepository<Stock, Long>{
+public interface StockOutRepo extends JpaRepository<StockOut, Long>{
     
 }

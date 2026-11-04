@@ -1,10 +1,10 @@
 package rr.seafoods.in.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import lombok.RequiredArgsConstructor;
 import rr.seafoods.in.entity.Product;
 import rr.seafoods.in.repository.ProductRepo;
 
@@ -12,17 +12,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import rr.seafoods.in.entity.StockIn;
+import rr.seafoods.in.repository.StockInRepo;
+
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/master")
 @CrossOrigin(origins = "http://localhost:3001", allowCredentials = "true")
 public class MasterController {
 
     private final ProductRepo productRepo;
-
-    @Autowired
-    public MasterController(ProductRepo productRepo) {
-        this.productRepo = productRepo;
-    }
+    private final StockInRepo stockRepo;
 
     @GetMapping("/products")
     public List<Product> getProducts() {
@@ -107,4 +107,36 @@ public class MasterController {
         return ResponseEntity.ok(
                 Map.of("message", "Product deleted successfully"));
     }
+
+    @PostMapping("/addStockIn")
+    public ResponseEntity<?> addStock(@RequestBody StockIn stock) {
+
+        if (stock.getProductName() == null
+                || stock.getProductName().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Product Selection is required"));
+        }
+
+    
+        // String productName = stock.getProductName().trim();
+
+        // boolean exists = productRepo.existsByProductNameIgnoreCaseAndStatus(productName, "A");
+
+        // if (exists){
+        //     return ResponseEntity.badRequest().body(Map.of("message", "Product already exists"));
+        // }
+        // product.setProductId(null);
+        // product.setProductName(productName);
+        // product.setProductQuantity("1");
+
+        StockIn savedStock = stockRepo.save(stock);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedStock);
+    }
+
+    @GetMapping("/stock")
+    public List<StockIn> getStock() {
+        return ;
+    }
+
 }

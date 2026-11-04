@@ -683,6 +683,7 @@
   cursor: pointer;
 }
 
+
 .stock-date-filter input:focus {
   border-color: #c8a96e;
 }
@@ -691,4 +692,62 @@
   .stock-date-filter {
     justify-content: space-between;
   }
+}
+
+/* Stock Management Heading */
+.stock-page-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #12141a;
+}
+
+/* Stock Management Description */
+.stock-page-subtitle {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* Table Section Heading */
+.stock-section-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #12141a;
+}
+
+/* Table Section Description */
+.stock-section-description {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Product Name in Table */
+.stock-product-name {
+    font-weight: 600;
+}
+
+/* Product Dropdown */
+.stock-product-select {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #fff;
+    font-size: 14px;
+    color: #334155;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.stock-product-select:focus {
+    border-color: #2563eb;
+}
+
+/* Required Field Star */
+.stock-required {
+    color: red;
 }

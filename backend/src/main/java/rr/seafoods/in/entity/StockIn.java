@@ -1,6 +1,5 @@
 package rr.seafoods.in.entity;
 
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -15,11 +14,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
+@Entity
+@Data
+@Table(name = "stock_in")
+public class StockIn {
 
-@Entity 
-@Data 
-@Table(name = "daywise_stock")
-public class Stock {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long stockId;
@@ -29,7 +28,10 @@ public class Stock {
 
     private String quantity;
 
-    @Column (nullable=false)
+    private String stockType = "IN";
+
+
+    @Column (nullable=true)
     private LocalDate date;
 
     @CreationTimestamp
@@ -86,6 +88,14 @@ public class Stock {
 
     public void setUpdatedOn(LocalDateTime updatedOn) {
         this.updatedOn = updatedOn;
+    }
+
+    public String getStockType() {
+        return stockType;
+    }
+
+    public void setStockType(String stockType) {
+        this.stockType = stockType;
     }
 
 }

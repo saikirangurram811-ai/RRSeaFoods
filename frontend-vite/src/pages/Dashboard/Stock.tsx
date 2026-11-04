@@ -1,666 +1,706 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import {
+    getProducts,
+    addStockIn,
+    getStockIn,
+    type Product,
+    type StockPayload,
+    type StockResponse
+} from "../../apis/masterapi";
+
 import "../../components/DynamicTableForm/DynamicCSS/DynamicTable.css";
+import toast from "react-hot-toast";
 
 type StockType = "in" | "out" | "remaining";
 
-type Product = {
-  id: number;
-  productName: string;
+type RemainingStock = {
+    productId: number;
+    productName: string;
+    quantity: number;
+    stockDate: string;
 };
 
-type StockEntry = {
-  id: number;
-  productId: number;
-  productName: string;
-  quantity: number;
-  date: string;
+const getTodayDate = () => {
+    const date = new Date();
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
 };
-
-// Static product dropdown data
-const products: Product[] = [
-  { id: 1, productName: "Rohu Fish" },
-  { id: 2, productName: "Hilsa Fish" },
-  { id: 3, productName: "Prawn" },
-  { id: 4, productName: "Vannamei Prawn" },
-  { id: 5, productName: "Squid" },
-  { id: 6, productName: "Tilapia" },
-  { id: 7, productName: "Pomfret" },
-  { id: 8, productName: "King Fish" },
-  { id: 9, productName: "Crab" },
-  { id: 10, productName: "Mackerel" },
-];
-
-// Static Stock In data
-const initialStockIn: StockEntry[] = [
-  { id: 1, productId: 1, productName: "Rohu Fish", quantity: 100, date: "2026-10-29" },
-  { id: 2, productId: 2, productName: "Hilsa Fish", quantity: 50, date: "2026-10-30" },
-  { id: 3, productId: 3, productName: "Prawn", quantity: 75, date: "2026-10-29" },
-  { id: 4, productId: 4, productName: "Vannamei Prawn", quantity: 60, date: "2026-10-30" },
-  { id: 5, productId: 5, productName: "Squid", quantity: 40, date: "2026-10-30" },
-  { id: 6, productId: 6, productName: "Tilapia", quantity: 80, date: "2026-10-29" },
-  { id: 7, productId: 7, productName: "Pomfret", quantity: 45, date: "2026-10-30" },
-  { id: 8, productId: 8, productName: "King Fish", quantity: 30, date: "2026-10-28" },
-  { id: 9, productId: 9, productName: "Crab", quantity: 25, date: "2026-10-28" },
-  { id: 10, productId: 10, productName: "Mackerel", quantity: 70, date: "2026-10-28" },
-];
-
-// Static Stock Out data
-const initialStockOut: StockEntry[] = [
-  { id: 1, productId: 1, productName: "Rohu Fish", quantity: 25, date: "2026-10-29" },
-  { id: 2, productId: 3, productName: "Prawn", quantity: 30, date: "2026-10-30" },
-  { id: 3, productId: 4, productName: "Vannamei Prawn", quantity: 20, date: "2026-10-30" },
-  { id: 4, productId: 5, productName: "Squid", quantity: 12, date: "2026-10-28" },
-  { id: 5, productId: 6, productName: "Tilapia", quantity: 40, date: "2026-10-30" },
-  { id: 6, productId: 7, productName: "Pomfret", quantity: 10, date: "2026-10-28" },
-];
 
 const formatDate = (date: string) => {
-  return new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+    if (!date) return "-";
+
+    return new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 };
 
 const Stock: React.FC = () => {
 
-  const [activeTab, setActiveTab] = useState<StockType>("in");
+    const today = getTodayDate();
 
-  const [stockIn, setStockIn] = useState<StockEntry[]>(initialStockIn);
-  const [stockOut, setStockOut] = useState<StockEntry[]>(initialStockOut);
+    // Tabs
+    const [activeTab, setActiveTab] = useState<StockType>("in");
 
-  const [search, setSearch] = useState("");
-  const [pageSize, setPageSize] = useState(10);
-  const [page, setPage] = useState(1);
+    // Stock records
+    const [stockIn, setStockIn] = useState<StockResponse[]>([]);
+    const [stockOut, setStockOut] = useState<StockResponse[]>([]);
 
-  const [showModal, setShowModal] = useState(false);
+    // Products
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loadingProducts, setLoadingProducts] = useState(false);
+    const [loadingStock, setLoadingStock] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [error, setError] = useState("");
+    // Search and pagination
+    const [search, setSearch] = useState("");
+    const [pageSize, setPageSize] = useState(10);
+    const [page, setPage] = useState(1);
 
-  const today = "2026-10-30";
+    // Modal
+    const [showModal, setShowModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState("");
+    const [quantity, setQuantity] = useState("");
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
 
-  // Calculate remaining stock product-wise
-  const remainingStock = useMemo(() => {
+    // Date filter
+    const [selectedDate, setSelectedDate] = useState<string>(today);
 
-    return products.map((product) => {
+    // Fetch products
+    const fetchProducts = async () => {
+        try {
+            setLoadingProducts(true);
 
-      const totalIn = stockIn
-        .filter(item => item.productId === product.id)
-        .reduce((sum, item) => sum + item.quantity, 0);
+            const data = await getProducts();
 
-      const totalOut = stockOut
-        .filter(item => item.productId === product.id)
-        .reduce((sum, item) => sum + item.quantity, 0);
+            setProducts(data);
 
-      return {
-        id: product.id,
-        productId: product.id,
-        productName: product.productName,
-        quantity: totalIn - totalOut,
-        date: today,
-      };
-
-    }).filter(item => item.quantity > 0);
-
-  }, [stockIn, stockOut]);
-
-  // Summary calculations
-  const totalStockIn = stockIn.reduce(
-    (sum, item) => sum + item.quantity, 0
-  );
-
-  const totalStockOut = stockOut.reduce(
-    (sum, item) => sum + item.quantity, 0
-  );
-
-  const totalRemaining = remainingStock.reduce(
-    (sum, item) => sum + item.quantity, 0
-  );
-
-  const [selectedDate, setSelectedDate] = useState("2026-10-30");
-
-  // Current table data
-  const tableData =
-    activeTab === "in"
-      ? stockIn
-      : activeTab === "out"
-        ? stockOut
-        : remainingStock;
-
-  const dateFilteredData = tableData.filter(
-    item => item.date === selectedDate
-  );
-
-  const filteredData = dateFilteredData.filter(item =>
-    item.productName.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Pagination
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredData.length / pageSize)
-  );
-
-  const startIndex = (page - 1) * pageSize;
-
-  const displayedData = filteredData.slice(
-    startIndex,
-    startIndex + pageSize
-  );
-
-  // Change tabs
-  const handleTabChange = (tab: StockType) => {
-    setActiveTab(tab);
-    setSearch("");
-    setPage(1);
-  };
-
-  // Open modal
-  const handleAdd = () => {
-    setSelectedProduct("");
-    setQuantity("");
-    setError("");
-    setShowModal(true);
-  };
-
-  // Save stock entry
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
-
-    e.preventDefault();
-
-    const product = products.find(
-      item => item.id === Number(selectedProduct)
-    );
-
-    const enteredQuantity = Number(quantity);
-
-    if (!product) {
-      setError("Please select a product.");
-      return;
-    }
-
-    if (!quantity || !Number.isFinite(enteredQuantity) || enteredQuantity <= 0) {
-      setError("Please enter a valid quantity.");
-      return;
-    }
-
-    // Check available quantity before Stock Out
-    if (activeTab === "out") {
-
-      const available = remainingStock.find(
-        item => item.productId === product.id
-      )?.quantity || 0;
-
-      if (enteredQuantity > available) {
-        setError(
-          `Only ${available} Kg available for ${product.productName}.`
-        );
-        return;
-      }
-    }
-
-    const newEntry: StockEntry = {
-      id: Date.now(),
-      productId: product.id,
-      productName: product.productName,
-      quantity: enteredQuantity,
-      date: today,
+        } catch (error) {
+            console.error("Failed to fetch products:", error);
+            toast.error("Unable to load products. Please try again.");
+        } finally {
+            setLoadingProducts(false);
+        }
     };
 
-    if (activeTab === "in") {
-      setStockIn(prev => [...prev, newEntry]);
-    } else if (activeTab === "out") {
-      setStockOut(prev => [...prev, newEntry]);
-    }
+    // Fetch Stock In records
+    const fetchStockIn = async () => {
+        try {
+            setLoadingStock(true);
 
-    setShowModal(false);
-    setSearch("");
-    setPage(1);
-  };
+            const data = await getStockIn();
 
-  // Delete stock entry
-  const handleDelete = (id: number) => {
+            setStockIn(data);
 
-    if (!window.confirm("Are you sure you want to delete this entry?")) {
-      return;
-    }
+        } catch (error) {
+            console.error("Failed to fetch stock in:", error);
+            toast.error("Unable to load Stock In records.");
+        } finally {
+            setLoadingStock(false);
+        }
+    };
 
-    if (activeTab === "in") {
-      setStockIn(prev => prev.filter(item => item.id !== id));
-    } else if (activeTab === "out") {
-      setStockOut(prev => prev.filter(item => item.id !== id));
-    }
-  };
+    // Load data when page opens
+    useEffect(() => {
+        fetchProducts();
+        fetchStockIn();
+    }, []);
 
-  const pageTitle =
-    activeTab === "in"
-      ? "Stock In Today"
-      : activeTab === "out"
-        ? "Stock Out Today"
-        : "Remaining Stock";
+    // Calculate remaining stock
+    // Currently based only on Stock In because Stock Out API is not available.
+    const remainingStock = useMemo((): RemainingStock[] => {
 
-  return (
+        return products.map((product) => {
 
-    <div className="product-page">
+            const totalIn = stockIn
+                .filter(item => item.productId === product.productId)
+                .filter(item => item.stockDate <= selectedDate)
+                .reduce((sum, item) => sum + Number(item.quantity), 0);
 
-      <div className="dt-root">
+            const totalOut = stockOut
+                .filter(item => item.productId === product.productId)
+                .filter(item => item.stockDate <= selectedDate)
+                .reduce((sum, item) => sum + Number(item.quantity), 0);
 
-        {/* Header */}
+            return {
+                productId: product.productId,
+                productName: product.productName,
+                quantity: totalIn - totalOut,
+                stockDate: selectedDate
+            };
 
-        <div className="dt-header">
+        }).filter(item => item.quantity > 0);
 
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: 24,
-              fontWeight: 700,
-              color: "#12141a"
-            }}>
-              Stock Management
-            </h2>
+    }, [products, stockIn, stockOut, selectedDate]);
 
-            <p style={{
-              marginTop: 6,
-              color: "#64748b",
-              fontSize: 13
-            }}>
-              Manage your stock in, stock out and remaining stock.
-            </p>
-          </div>
+    // Summary calculations for selected date
+    const totalStockIn = stockIn
+        .filter(item => item.stockDate === selectedDate)
+        .reduce((sum, item) => sum + Number(item.quantity), 0);
 
-          {activeTab !== "remaining" && (
-            <button
-              className="btn-primary"
-              onClick={handleAdd}
-            >
-              + Add {activeTab === "in" ? "Stock In" : "Stock Out"}
-            </button>
-          )}
+    const totalStockOut = stockOut
+        .filter(item => item.stockDate === selectedDate)
+        .reduce((sum, item) => sum + Number(item.quantity), 0);
 
-        </div>
+    const totalRemaining = remainingStock.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+    );
 
-        {/* Summary Cards */}
+    // Current table data
+    const tableData =
+        activeTab === "in"
+            ? stockIn
+            : activeTab === "out"
+                ? stockOut
+                : remainingStock;
 
-        <div className="stock-summary-grid">
+    // Filter by selected date
+    const dateFilteredData = tableData.filter(item => {
+        if (activeTab === "remaining") {
+            return true;
+        }
 
-          <button
-            className={`stock-summary-card stock-in-card ${activeTab === "in" ? "active" : ""}`}
-            onClick={() => handleTabChange("in")}
-          >
-            <span>Stock In Today</span>
-            <strong>{totalStockIn} Kg</strong>
-            <small>Total Received Quantity</small>
-          </button>
+        return item.stockDate === selectedDate;
+    });
 
-          <button
-            className={`stock-summary-card stock-out-card ${activeTab === "out" ? "active" : ""}`}
-            onClick={() => handleTabChange("out")}
-          >
-            <span>Stock Out Today</span>
-            <strong>{totalStockOut} Kg</strong>
-            <small>Total Dispatched Quantity</small>
-          </button>
+    // Search
+    const filteredData = dateFilteredData.filter(item =>
+        item.productName.toLowerCase().includes(search.toLowerCase())
+    );
 
-          <button
-            className={`stock-summary-card stock-remaining-card ${activeTab === "remaining" ? "active" : ""}`}
-            onClick={() => handleTabChange("remaining")}
-          >
-            <span>Remaining Stock</span>
-            <strong>{totalRemaining} Kg</strong>
-            <small>Available Quantity</small>
-          </button>
+    // Pagination
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filteredData.length / pageSize)
+    );
 
-          {/* Date Filter */}
+    const startIndex = (page - 1) * pageSize;
 
-          <div className="stock-date-filter">
+    const displayedData = filteredData.slice(
+        startIndex,
+        startIndex + pageSize
+    );
 
-            <label htmlFor="stockDate">
-              <i className="bi bi-calendar3"></i>
-              Select Date:
-            </label>
+    // Change tabs
+    const handleTabChange = (tab: StockType) => {
+        setActiveTab(tab);
+        setSearch("");
+        setPage(1);
+    };
 
-            <input
-              type="date"
-              id="stockDate"
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                setPage(1);
-              }}
-            />
+    // Open Add Stock modal
+    const handleAdd = () => {
 
-          </div>
+        if (activeTab !== "in") {
+            return;
+        }
 
-        </div>
+        setSelectedProduct("");
+        setQuantity("");
+        setError("");
+        setShowModal(true);
+    };
 
-        {/* Table Header and Search */}
+    // Save Stock In
+    const handleSave = async (
+        e: React.FormEvent<HTMLFormElement>
+    ) => {
 
-        <div className="dt-toolbar">
+        e.preventDefault();
 
-          <div>
-            <h3 style={{
-              margin: 0,
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#12141a"
-            }}>
-              {pageTitle} Details
-            </h3>
+        if (activeTab !== "in") {
+            return;
+        }
 
-            <p style={{
-              marginTop: 5,
-              fontSize: 12,
-              color: "#64748b"
-            }}>
-              {activeTab === "remaining"
-                ? "View available product quantities."
-                : "Manage today's stock entries."}
-            </p>
-          </div>
+        const product = products.find(
+            item => item.productId === Number(selectedProduct)
+        );
 
-          <div className="dt-toolbar-right">
+        const enteredQuantity = Number(quantity);
 
-            <input
-              type="text"
-              className="dt-search"
-              placeholder="Search product name..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
+        if (!product) {
+            toast.error("Please select a product.");
+            return;
+        }
 
-            <select
-              className="dt-pagesize"
-              value={pageSize}
-              onChange={e => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-            </select>
+        if (
+            !quantity ||
+            !Number.isFinite(enteredQuantity) ||
+            enteredQuantity <= 0
+        ) {
+            toast.error("Please enter a valid quantity.");
+            return;
+        }
 
-          </div>
+        const payload: StockPayload = {
+            productId: product.productId,
+            productName: product.productName,
+            quantity: enteredQuantity,
+            stockDate: today,
+            stockType: "IN"
+        };
 
-        </div>
+        try {
 
-        {/* Stock Table */}
+            setSaving(true);
+            setError("");
 
-        <div className="dt-wrap">
+            await addStockIn(payload);
 
-          <table className="dt-table">
+            toast.success("Stock In added successfully!");
 
-            <thead>
-              <tr>
-                <th>S.No</th>
-                <th>Product Name</th>
-                <th>Quantity (Kg)</th>
-                <th>Date</th>
-                {activeTab !== "remaining" && <th>Action</th>}
-              </tr>
-            </thead>
+            setShowModal(false);
+            setSelectedProduct("");
+            setQuantity("");
+            setSearch("");
+            setPage(1);
 
-            <tbody>
+            // Reload Stock In records after saving
+            await fetchStockIn();
 
-              {displayedData.length > 0 ? (
+        } catch (err: any) {
 
-                displayedData.map((item, index) => (
+            console.error("Failed to save stock:", err);
 
-                  <tr key={item.id}>
+            const errorMessage =
+                err?.response?.data?.message ||
+                err?.response?.data ||
+                "Failed to save stock. Please try again.";
 
-                    <td>{startIndex + index + 1}</td>
+            setError(
+                typeof errorMessage === "string"
+                    ? errorMessage
+                    : "Failed to save stock. Please try again."
+            );
 
-                    <td style={{ fontWeight: 600 }}>
-                      {item.productName}
-                    </td>
+        } finally {
+            setSaving(false);
+        }
+    };
 
-                    <td>{item.quantity} Kg</td>
+    const pageTitle =
+        activeTab === "in"
+            ? "Stock In"
+            : activeTab === "out"
+                ? "Stock Out"
+                : "Remaining Stock";
 
-                    <td>{formatDate(item.date)}</td>
+    return (
 
-                    {activeTab !== "remaining" && (
-                      <td>
-                        <div className="action-btns">
+        <div className="product-page">
 
-                          <button
-                          type="button"
-                          className="product-edit-btn"
-                          // onClick={() => openEditDialog(product)}
+            <div className="dt-root">
+
+                {/* Header */}
+
+                <div className="dt-header">
+
+                    <div>
+                        <h2 className="stock-page-title">
+                            Stock Management
+                        </h2>
+
+                        <p className="stock-page-subtitle">
+                            Manage your stock in, stock out and remaining stock.
+                        </p>
+                    </div>
+
+                    {activeTab === "in" && (
+                        <button
+                            className="btn-primary"
+                            onClick={handleAdd}
                         >
-                          Edit
+                            + Add Stock In
                         </button>
-                          <button
-                            className="act-btn delete"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
                     )}
 
-                  </tr>
-
-                ))
-
-              ) : (
-
-                <tr>
-                  <td
-                    colSpan={activeTab === "remaining" ? 4 : 5}
-                    className="dt-state"
-                  >
-                    No stock records found.
-                  </td>
-                </tr>
-
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-        {/* Pagination */}
-
-        <div className="dt-pagination">
-
-          <span>
-            Showing {filteredData.length === 0 ? 0 : startIndex + 1}
-            {" "}to {Math.min(startIndex + pageSize, filteredData.length)}
-            {" "}of {filteredData.length} entries
-          </span>
-
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(prev => prev - 1)}
-          >
-            Previous
-          </button>
-
-          <strong>{page} / {totalPages}</strong>
-
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(prev => prev + 1)}
-          >
-            Next
-          </button>
-
-        </div>
-
-      </div>
-
-      {/* Add Stock Modal */}
-
-      {showModal && (
-
-        <div
-          className="product-modal-overlay"
-          onMouseDown={e => {
-            if (e.target === e.currentTarget) {
-              setShowModal(false);
-            }
-          }}
-        >
-
-          <div className="product-modal">
-
-            <form onSubmit={handleSave}>
-
-              <div className="product-modal-header">
-
-                <div>
-                  <h2>
-                    Add {activeTab === "in" ? "Stock In" : "Stock Out"}
-                  </h2>
-
-                  <p>
-                    Enter product and quantity details.
-                  </p>
                 </div>
 
-                <button
-                  type="button"
-                  className="product-modal-close"
-                  onClick={() => setShowModal(false)}
-                >
-                  ×
-                </button>
+                {/* Summary Cards */}
 
-              </div>
+                <div className="stock-summary-grid">
 
-              <div className="product-modal-body">
+                    <button
+                        className={`stock-summary-card stock-in-card ${activeTab === "in" ? "active" : ""}`}
+                        onClick={() => handleTabChange("in")}
+                    >
+                        <span>Stock In Today</span>
 
-                {error && (
-                  <div className="product-form-error">
-                    {error}
-                  </div>
-                )}
+                        <strong>{totalStockIn} Kg</strong>
 
-                {/* Product Dropdown */}
+                        <small>Received Quantity</small>
+                    </button>
 
-                <div className="product-form-group">
+                    <button
+                        className={`stock-summary-card stock-out-card ${activeTab === "out" ? "active" : ""}`}
+                        onClick={() => handleTabChange("out")}
+                    >
+                        <span>Stock Out Today</span>
 
-                  <label>
-                    Product Name <span>*</span>
-                  </label>
+                        <strong>{totalStockOut} Kg</strong>
 
-                  <select
-                    value={selectedProduct}
-                    onChange={e => setSelectedProduct(e.target.value)}
-                    required
-                    style={{
-                      width: "100%",
-                      height: 44,
-                      padding: "0 12px",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 7,
-                      background: "#fff",
-                      fontSize: 14
-                    }}
-                  >
+                        <small>Dispatched Quantity</small>
+                    </button>
 
-                    <option value="">
-                      Select Product
-                    </option>
+                    <button
+                        className={`stock-summary-card stock-remaining-card ${activeTab === "remaining" ? "active" : ""}`}
+                        onClick={() => handleTabChange("remaining")}
+                    >
+                        <span>Remaining Stock</span>
 
-                    {products.map(product => (
+                        <strong>{totalRemaining} Kg</strong>
 
-                      <option
-                        key={product.id}
-                        value={product.id}
-                      >
-                        {product.productName}
-                      </option>
+                        <small>Available Quantity</small>
+                    </button>
 
-                    ))}
+                    {/* Date Filter */}
 
-                  </select>
+                    <div className="stock-date-filter">
+
+                        <label htmlFor="stockDate">
+                            <i className="bi bi-calendar3"></i>
+                            Select Date:
+                        </label>
+
+                        <input
+                            type="date"
+                            id="stockDate"
+                            value={selectedDate}
+                            onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                setPage(1);
+                            }}
+                        />
+
+                    </div>
 
                 </div>
 
-                {/* Quantity */}
+                {/* Table Header and Search */}
 
-                <div className="product-form-group">
+                <div className="dt-toolbar">
 
-                  <label>
-                    Quantity <span>*</span>
-                  </label>
+                    <div>
+                        <h3 className="stock-section-title">
+                            {pageTitle} Details
+                        </h3>
 
-                  <div className="product-price-input">
+                        <p className="stock-section-description">
+                            {activeTab === "remaining"
+                                ? "View available product quantities."
+                                : `View ${pageTitle.toLowerCase()} entries.`}
+                        </p>
+                    </div>
 
-                    <input
-                      type="number"
-                      placeholder="Enter quantity"
-                      min="0.01"
-                      step="0.01"
-                      value={quantity}
-                      onChange={e => setQuantity(e.target.value)}
-                      required
-                    />
+                    <div className="dt-toolbar-right">
 
-                    <span className="product-price-unit">
-                      Kg
+                        <input
+                            type="text"
+                            className="dt-search"
+                            placeholder="Search product name..."
+                            value={search}
+                            onChange={e => {
+                                setSearch(e.target.value);
+                                setPage(1);
+                            }}
+                        />
+
+                        <select
+                            className="dt-pagesize"
+                            value={pageSize}
+                            onChange={e => {
+                                setPageSize(Number(e.target.value));
+                                setPage(1);
+                            }}
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+                {/* Stock Table */}
+
+                <div className="dt-wrap">
+
+                    <table className="dt-table">
+
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Product Name</th>
+                                <th>Quantity (Kg)</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {loadingStock && activeTab === "in" ? (
+
+                                <tr>
+                                    <td colSpan={4} className="dt-state">
+                                        Loading Stock In records...
+                                    </td>
+                                </tr>
+
+                            ) : displayedData.length > 0 ? (
+
+                                displayedData.map((item, index) => (
+
+                                    <tr
+                                        key={
+                                            activeTab === "remaining"
+                                                ? item.productId
+                                                : (item as StockResponse).stockId
+                                        }
+                                    >
+
+                                        <td>
+                                            {startIndex + index + 1}
+                                        </td>
+
+                                        <td className="stock-product-name">
+                                            {item.productName}
+                                        </td>
+
+                                        <td>
+                                            {item.quantity} Kg
+                                        </td>
+
+                                        <td>
+                                            {formatDate(item.stockDate)}
+                                        </td>
+
+                                    </tr>
+
+                                ))
+
+                            ) : (
+
+                                <tr>
+                                    <td colSpan={4} className="dt-state">
+
+                                        {activeTab === "out"
+                                            ? "Stock Out APIs are not implemented yet."
+                                            : "No stock records found."}
+
+                                    </td>
+                                </tr>
+
+                            )}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                {/* Pagination */}
+
+                <div className="dt-pagination">
+
+                    <span>
+                        Showing {filteredData.length === 0 ? 0 : startIndex + 1}
+                        {" "}to{" "}
+                        {Math.min(startIndex + pageSize, filteredData.length)}
+                        {" "}of {filteredData.length} entries
                     </span>
 
-                  </div>
+                    <button
+                        disabled={page === 1}
+                        onClick={() => setPage(prev => prev - 1)}
+                    >
+                        Previous
+                    </button>
+
+                    <strong>
+                        {page} / {totalPages}
+                    </strong>
+
+                    <button
+                        disabled={page >= totalPages}
+                        onClick={() => setPage(prev => prev + 1)}
+                    >
+                        Next
+                    </button>
 
                 </div>
 
-                {/* Date */}
+            </div>
 
-                <div className="product-form-group">
+            {/* Add Stock In Modal */}
 
-                  <label>Date</label>
+            {showModal && (
 
-                  <input
-                    type="date"
-                    value={today}
-                    readOnly
-                  />
+                <div
+                    className="product-modal-overlay"
+                    onMouseDown={e => {
+                        if (e.target === e.currentTarget) {
+                            setShowModal(false);
+                        }
+                    }}
+                >
+
+                    <div className="product-modal">
+
+                        <form onSubmit={handleSave}>
+
+                            <div className="product-modal-header">
+
+                                <div>
+                                    <h2>
+                                        Add Stock In
+                                    </h2>
+
+                                    <p>
+                                        Enter product and quantity details.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="product-modal-close"
+                                    onClick={() => setShowModal(false)}
+                                >
+                                    ×
+                                </button>
+
+                            </div>
+
+                            <div className="product-modal-body">
+
+                                {error && (
+                                    <div className="product-form-error">
+                                        {error}
+                                    </div>
+                                )}
+
+                                {/* Product Dropdown */}
+
+                                <div className="product-form-group">
+
+                                    <label>
+                                        Product Name <span>*</span>
+                                    </label>
+
+                                    <select
+                                        value={selectedProduct}
+                                        onChange={e => setSelectedProduct(e.target.value)}
+                                        required
+                                        className="stock-product-select"
+                                        disabled={loadingProducts}
+                                    >
+
+                                        <option value="">
+                                            {loadingProducts
+                                                ? "Loading products..."
+                                                : "Select Product"}
+                                        </option>
+
+                                        {products.map(product => (
+
+                                            <option
+                                                key={product.productId}
+                                                value={product.productId}
+                                            >
+                                                {product.productName}
+                                            </option>
+
+                                        ))}
+
+                                    </select>
+
+                                </div>
+
+                                {/* Quantity */}
+
+                                <div className="product-form-group">
+
+                                    <label>
+                                        Quantity <span>*</span>
+                                    </label>
+
+                                    <div className="product-price-input">
+
+                                        <input
+                                            type="number"
+                                            placeholder="Enter quantity"
+                                            min="0.01"
+                                            step="0.01"
+                                            value={quantity}
+                                            onChange={e => setQuantity(e.target.value)}
+                                            required
+                                        />
+
+                                        <span className="product-price-unit">
+                                            Kg
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                                {/* Date */}
+
+                                <div className="product-form-group">
+
+                                    <label>
+                                        Date
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        value={today}
+                                        readOnly
+                                    />
+
+                                </div>
+
+                            </div>
+
+                            <div className="product-modal-footer">
+
+                                <button
+                                    type="button"
+                                    className="product-cancel-btn"
+                                    onClick={() => setShowModal(false)}
+                                    disabled={saving}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    className="product-save-btn"
+                                    disabled={saving || loadingProducts}
+                                >
+                                    {saving ? "Saving..." : "Save"}
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
 
                 </div>
 
-              </div>
-
-              <div className="product-modal-footer">
-
-                <button
-                  type="button"
-                  className="product-cancel-btn"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="product-save-btn"
-                >
-                  Save
-                </button>
-
-              </div>
-
-            </form>
-
-          </div>
+            )}
 
         </div>
-
-      )}
-
-    </div>
-  );
+    );
 };
 
 export default Stock;
